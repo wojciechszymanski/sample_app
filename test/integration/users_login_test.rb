@@ -1,33 +1,41 @@
 require 'test_helper'
 
-class UsersLoginTest < ActionDispatch::IntegrationTest
+class UsersControllerTest < ActionController::TestCase
+
   def setup
-    @user = users(:michael)
-  end
-  
-  test "login with valid information followed by logout" do
-    get login_path
-    post login_path, session: { email: @user.email, password: 'password' }
-    assert is_logged_in?
-    assert_redirected_to @user
-    follow_redirect!
-    assert_template 'users/show'
-    assert_select "a[href=?]", login_path, count: 0
-    assert_select "a[href=?]", logout_path
-    assert_select "a[href=?]", user_path(@user)
-    delete logout_path
-    assert_not is_logged_in?
-    assert_redirected_to root_url
-    follow_redirect!
-    assert_select "a[href=?]", login_path
-    assert_select "a[href=?]", logout_path,      count: 0
-    assert_select "a[href=?]", user_path(@user), count: 0
-    # Simulate a user clicking logout in a second window.
-    delete logout_path
-    follow_redirect!
-    assert_select "a[href=?]", login_path
-    assert_select "a[href=?]", logout_path,      count: 0
-    assert_select "a[href=?]", user_path(@user), count: 0
+    @user       = users(:michael)
+    @other_user = users(:archer)
   end
 
+  test "should get new" do
+    get :new
+    assert_response :success
+  end
+
+  test "should redirect edit when not logged in" do
+    get :edit, id: @user
+    assert_not flash.empty?
+    assert_redirected_to login_url
+  end
+
+  test "should redirect update when not logged in" do
+    patch :update, id: @user, user: { name: @user.name, email: @user.email }
+    assert_not flash.empty?
+    assert_redirected_to login_url
+  end
+
+  test "should redirect edit when logged in as wrong user" do
+    log_in_as(@other_user)
+    get :edit, id: @user
+    assert flash.empty?
+    assert_redirected_to root_url
+  end
+
+  test "should redirect update when logged in as wrong user" do
+    log_in_as(@other_user)
+    patch :update, id: @user, user: { name: @user.name, email: @user.email }
+    assert flash.empty?
+    assert_redirected_to root_url
+  end
+  
 end
